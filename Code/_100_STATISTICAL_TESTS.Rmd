@@ -1,0 +1,58 @@
+---
+title: "100 STATISTICAL TESTS"
+author: "Pooya Shirazi"
+date: "December 15, 2019"
+output:
+  word_document:
+    highlight: tango
+  # pdf_document:
+  #   highlight: tango
+  #   latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Test 13: Z-test of a Correlation Coefficient
+```{r Step_1}
+# load data:
+# data <- read.csv(file = )
+# library(package = miscor, character.only = FALSE)
+
+# setting initial parameter values:
+r = 0.75
+rho0 = 0.50
+n = 24
+
+# use test.core function:
+# test.cor(r = r, n = n, rho0 = rho0, conf.level = 0.90, reduced = TRUE)
+```
+
+```{r Step_2}
+# load miscor package:
+library(miscor)
+# library(package = miscor, character.only = FALSE)
+
+# setting initial parameter values:
+r = 0.75
+rho0 = 0.50
+n = 24
+
+# use test.core function:
+test.cor(r = r, n = n, rho0 = rho0, conf.level = 0.90, reduced = TRUE)
+```
+
+```{r Step_3}
+# load miscor package:
+library(miscor)
+
+# setting initial parameter values:
+r = 0.75
+rho0 = 0.50
+n = 24
+
+# use test.core function:
+test.cor(r = r, n = n, rho0 = rho0, conf.level = 0.90, reduced = TRUE)
+```
+
