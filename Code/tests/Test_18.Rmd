@@ -1,0 +1,68 @@
+---
+title: "Test 21: Dixon’s Test for Outliers"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# Load Required Packages:
+source(file = "muFunc.R")
+
+wants <- c("dplyr", "psych", "pacman")
+has <- wants %in% rownames(x = installed.packages())
+if(any(!has)) install.packages(wants[!has])
+
+pacman::p_load(char = wants)
+
+
+
+
+library(package = dplyr)
+library(package = psych)
+library(package = outliers)
+library(package = ggpubr)
+
+# Load Required Data:
+data <- read.csv(file = "data/Data_Test_21.csv", header = TRUE)
+
+set.seed(1361)
+nSample <- data %>% sample_n(size = 30)
+
+# Show Data:
+headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# Assumption Checking:
+# 1. The two populations should both follow normal distributions.
+# Use Shapiro-Wilk Normality Test:
+shapiro.test(x = data$prec_mashhad)
+
+# Normality Plot:
+ggqqplot(data = data$prec_mashhad, ylab = "Precipitation (mm)")
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# use var.test function:
+dixon.test(x = nSample$prec_mashhad, opposite = FALSE, two.sided = TRUE)
+dixon.test(x = nSample$prec_mashhad, opposite = TRUE, two.sided = TRUE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+```

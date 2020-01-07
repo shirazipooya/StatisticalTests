@@ -1,0 +1,58 @@
+---
+title: "Test 3: Z-test for Two Population Means (Variances Known and Unequal)"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# Load Required Packages:
+library(package = dplyr)
+library(package = psych)
+library(package = BSDA)
+
+# Load Required Data:
+data = read.csv(file = "data/Data_Test_03.csv", header = TRUE)
+
+# Prepare Data:
+set.seed(10)
+
+sample_Sirvan = data %>% select(Sirvan) %>% 
+  sample_n(size = 55, replace = FALSE) %>% unlist()
+
+sample_Pishgam = data %>% select(Pishgam) %>%
+  sample_n(size = 50, replace = FALSE) %>% unlist()
+
+# Show Data:
+headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# Assumption Checking:
+# 1. It is necessary that the two population variances be known.
+var(x = data$Sirvan)
+var(x = data$Pishgam)
+
+# 2. The test is accurate if the populations are normally distributed.
+shapiro.test(x = data$Sirvan)
+shapiro.test(x = data$Pishgam)
+```
+
+```{r Step_3}
+# setting initial parameter values:
+sigma_Sirvan = sd(x = data$Sirvan)
+sigma_Pishgam = sd(x = data$Pishgam)
+
+# use z.test function - alternative = "two.sided":
+z.test(x = sample_Sirvan, y = sample_Pishgam, alternative = "two.sided", mu = 0, 
+       sigma.x = sigma_Sirvan, sigma.y = sigma_Pishgam, conf.level = 0.95)
+
+# use z.test function - alternative = "greater":
+z.test(x = sample_Sirvan, y = sample_Pishgam, alternative = "greater", mu = 0, 
+       sigma.x = sigma_Sirvan, sigma.y = sigma_Pishgam, conf.level = 0.95)
+```

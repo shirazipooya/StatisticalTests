@@ -1,0 +1,106 @@
+---
+title: "Test 82: F-test for Testing Linearity of Regression"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# Load Required Functions:
+source(file = "muFunc.R")
+
+# Load Required Packages:
+wants <- c("dplyr", "psych", "pacman", "ggpubr")
+has <- wants %in% rownames(x = installed.packages())
+if(any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# Load Required Data:
+data <- read.csv(file = "data/Data_Test_82.csv", header = TRUE)
+
+set.seed(1)
+nSample <- data %>% sample_n(size = 35)
+
+# Show Data:
+headTail(x = nSample, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# Assumption Checking:
+# 1. It is assumed that the x and y values originate from a bivariate normal distribution,
+# and that the relationship is linear.
+
+# Use Shapiro-Wilk Normality Test:
+shapiro.test(x = data$prec_mashhad)
+shapiro.test(x = data$prec_sabzevar)
+
+# Normality Plot:
+ggqqplot(data = data$prec_mashhad, ylab = "Mashhad Prec. (mm)")
+ggqqplot(data = data$prec_sabzevar, ylab = "Sabzevar Prec. (mm)")
+
+# Visualize Data Using Scatter Plots:
+data %>% ggscatter(x = "prec_mashhad", y = "prec_sabzevar", 
+                   add = "reg.line", conf.int = TRUE,
+                   xlab = "Mashhad Prec. (mm)", ylab = "Sabzevar Prec. (mm)")
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# Method 1:---------------------------------------------------------------------
+# X Variable
+x <- nSample$prec_mashhad
+xbar <- mean(x)
+
+# Y Variable
+y <- nSample$prec_sabzevar
+ybar <- mean(y)
+
+# Length Data
+n <- length(y)
+
+# Regression Coefficient
+b <- (sum(x * y) - ((sum(x) * sum(y)) / n)) / (sum(x ^ 2) - (sum(x) ^ 2 / n))
+
+# Total Sum of Squares
+SST <- sum((y - ybar) ^ 2)
+
+# Regression Sum of Squares
+SSR <- sum((b * (x - xbar)) ^ 2)
+
+# Residual Sum of Squares
+SSE <- sum((y - ybar - (b * (x - xbar))) ^ 2)
+
+# Mean Squares
+SSEbar <- SSE / (n - 2)
+SSRbar <- SSR / 1
+
+# Ratio of Mean Squares
+(F_statistic = SSRbar / SSEbar)
+
+# Critical Value of F for (1, n − 2) Degrees of Freedom
+alpha = 0.05
+qf(p = (1 - alpha), df1 = 1, df2 = n - 2)
+
+# Method 2:---------------------------------------------------------------------
+mod <- lm(formula = prec_sabzevar ~ prec_mashhad, data = nSample)
+
+summary(mod)
+
+plotDistStat(dist = "F",
+             df1 = length(x = nSample$prec_mashhad) - 1,
+             df2 = length(x = nSample$prec_sabzevar) - 1,
+             to = 40,
+             alpha_level = 0.05,
+             statistic_point = extract_lm_F_p(modelobject = mod)[["F_statistics"]],
+             p_value = extract_lm_F_p(modelobject = mod)[["p_value"]])
+
+# Assumption Checking:
+# 1. The error terms are normally and independently distributed with mean zero.
+shapiro.test(x = mod$residuals)
+mean(mod$residuals)
+
+```

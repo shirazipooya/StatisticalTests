@@ -1,0 +1,57 @@
+---
+title: "Test 50: The median test of two populations"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# Load Required Functions:
+source(file = "muFunc.R")
+
+# Load Required Packages:
+wants <- c("dplyr", "psych", "pacman", "ggpubr",
+           "PerformanceAnalytics", "RVAideMemoire", "DescTools")
+has <- wants %in% rownames(x = installed.packages())
+if(any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# Load Required Data:
+data <- read.csv(file = "data/Data_Test_50.csv", header = TRUE)
+
+set.seed(1)
+sampleData = data %>% 
+  sample_n(size = 50) %>% 
+  reshape2::melt(id = c("sample"), variable.name = "Variety",
+                 value.name = "Yield")
+
+# Show Data:
+headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# Visualize Data Using Box Plots:
+ggboxplot(data = sampleData, x = "Variety", y = "Yield",
+          ylab = "Yield (kg/ha)", xlab = FALSE,
+          add = c("mean"))
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# Method 1:---------------------------------------------------------------------
+# Input data
+
+
+
+
+
+# Method 2:---------------------------------------------------------------------
+# The Sign Test for a Median with "SignTest" function from "DescTools" package
+mood.medtest(formula = Yield ~ Variety, 
+             data = sampleData,
+             exact = FALSE)
+```

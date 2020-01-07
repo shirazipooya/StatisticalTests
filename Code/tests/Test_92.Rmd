@@ -1,0 +1,84 @@
+---
+title: "Test 92: Durbin–Watson Test"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# Load Required Functions:
+source(file = "muFunc.R")
+
+# Load Required Packages:
+wants <- c("dplyr", "psych", "pacman", "ggpubr",
+           "PerformanceAnalytics", "lubridate", "DescTools")
+has <- wants %in% rownames(x = installed.packages())
+if(any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# Load Required Data:
+data <- read.csv(file = "data/Data_Test_92.csv", header = TRUE)
+
+# Show Data:
+headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# Assumption Checking:
+# Visualize Data Using Scatter Plots:
+data %>% ggscatter(x = "air", y = "water", 
+                   add = "reg.line", conf.int = TRUE,
+                   xlab = "Air Temp. (C)", ylab = "Water Temp. (C)")
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# Method 1:---------------------------------------------------------------------
+# Input data
+x = data$water
+y = data$air
+n = length(x = x)
+cat("The number of observations: ", n, "\n")
+
+# b: Slope of the Line
+b = (sum(x * y) - ((sum(x) * sum(y)) / n)) / (sum(x ^ 2) - (sum(x) ^ 2 / n))
+cat("Slope (b): ", b, "\n")
+
+# a: Intercept of the Line
+a = ((sum(y) * sum(x ^ 2)) - (sum(x) * sum(x * y))) / ((n * sum(x ^ 2)) - (sum(x) ^ 2))
+cat("Intercept (a): ", a, "\n")
+
+# Predicted Value of y in Regression Equation
+y_hat = a + (b * x)
+
+# Residuals
+r = y - y_hat
+
+# Assumption Checking:
+# 1. Error terms are independently normally distributed with mean zero and variance s2.
+# Use Shapiro-Wilk Normality Test:
+shapiro.test(x = r)
+
+# Normality Plot:
+ggqqplot(data = r, ylab = "Residuals (C)")
+
+# Mean of the residuals
+cat("Mean of the residuals: ", mean(x = r), "\n")
+
+# Computing Durbin–Watson statistic
+d = sum(diff(x = r) ^ 2) / sum(r ^ 2)
+cat("Durbin–Watson statistic: ", d, "\n")
+
+# Method 2:---------------------------------------------------------------------
+# Fitting linear models with "lm" function from "stats" package
+model = lm(formula = y ~ x)
+
+# Durbin-Watson test for autocorrelation of disturbances
+DurbinWatsonTest(formula = model,
+                 alternative = "two.sided",
+                 exact = FALSE)
+```

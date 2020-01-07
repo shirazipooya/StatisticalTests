@@ -1,0 +1,45 @@
+---
+title: "Test 8: t-test for Two Population Means (Variances Unknown but Equal))"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# Load Required Packages:
+library(package = dplyr)
+library(package = psych)
+
+# Load Required Data:
+data = read.csv(file = "data/Data_Test_08.csv", header = TRUE)
+
+# Prepare Data:
+set.seed(5)
+
+sample_A = data %>% select(Tape_A) %>% 
+  sample_n(size = 40, replace = FALSE) %>% unlist()
+
+sample_B = data %>% select(Tape_B) %>%
+  sample_n(size = 50, replace = FALSE) %>% unlist()
+
+# Show Data:
+headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# Assumption Checking:
+# 1. The test is accurate if the populations are normally distributed.
+shapiro.test(x = data$Tape_A)
+shapiro.test(x = data$Tape_B)
+```
+
+```{r Step_3}
+# use t.test function:
+t.test(x = sample_A, y = sample_B,
+       alternative = "two.sided", conf.level = 0.95,var.equal = TRUE)
+```

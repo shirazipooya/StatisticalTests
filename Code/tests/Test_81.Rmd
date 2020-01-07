@@ -1,0 +1,95 @@
+---
+title: "Test 81: F-test for Testing Regression"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# Load Required Functions:
+source(file = "muFunc.R")
+
+# Load Required Packages:
+wants <- c("dplyr", "psych", "pacman", "ggpubr")
+has <- wants %in% rownames(x = installed.packages())
+if(any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# Load Required Data:
+data <- read.csv(file = "data/Data_Test_81.csv", header = TRUE)
+
+set.seed(1)
+nSample <- data %>% sample_n(size = 3)
+
+# Show Data:
+headTail(x = nSample, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# Assumption Checking:
+# 1. It is assumed that the x and y values originate from a bivariate normal distribution,
+# and that the relationship is linear.
+
+# Use Shapiro-Wilk Normality Test:
+shapiro.test(x = data$prec_mashhad)
+shapiro.test(x = data$prec_sabzevar)
+
+# Normality Plot:
+ggqqplot(data = data$prec_mashhad, ylab = "Mashhad Prec. (mm)")
+ggqqplot(data = data$prec_sabzevar, ylab = "Sabzevar Prec. (mm)")
+
+# Visualize Data Using Scatter Plots:
+data %>% ggscatter(x = "prec_mashhad", y = "prec_sabzevar", 
+                   add = "reg.line", conf.int = TRUE,
+                   xlab = "Mashhad Prec. (mm)", ylab = "Sabzevar Prec. (mm)")
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# use t.test function - alternative = "two.sided":
+mod <- lm(formula = prec_sabzevar ~ prec_mashhad, data = nSample)
+summary(mod)
+
+var.test(x = nSample$prec_mashhad, y = nSample$prec_sabzevar, alternative = "two.sided")
+
+plotDistStat(dist = "F",
+             df1 = length(x = nSample$prec_mashhad) - 1,
+             df2 = length(x = nSample$prec_sabzevar) - 1,
+             to = 35,
+             alpha_level = 0.05,
+             statistic_point = extract_lm_F_p(modelobject = mod)[["F_statistics"]],
+             p_value = extract_lm_F_p(modelobject = mod)[["p_value"]])
+
+
+
+a = sum((nSample$prec_mashhad - mean(nSample$prec_mashhad)) ^ 2 )
+b = sum((nSample$prec_sabzevar - mean(nSample$prec_sabzevar)) ^ 2 )
+
+SSE = a + b
+SSB = 7711.335
+
+MSB = SSB / 1
+MSE = SSE / 4
+
+F = MSB / MSE
+
+
+nSample <- data.frame(x = c(150, 150, 150, 200, 200, 200, 250, 250, 250, 300, 300, 300), 
+                      y = c(77.4, 76.7, 78.2, 84.1, 84.5, 83.7, 88.9, 89.2, 89.7, 94.8, 94.7, 95.9))
+
+nSample <- data.frame(x = c(1, 2, 3), 
+                      y = c(7, 5, 6))
+
+mod <- lm(formula = y ~ x, data = nSample)
+
+summary(mod)
+
+car::linearHypothesis(mod, , c("(Intercept) = 0", "repwt = 1"), test = "Chisq")
+
+
+
+```

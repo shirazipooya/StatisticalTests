@@ -1,0 +1,123 @@
+---
+title: "Test 58: The Spearman Rank Correlation Test (Paired Observations)"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# Load Required Functions:
+source(file = "muFunc.R")
+
+# Load Required Packages:
+wants <- c("dplyr", "psych", "pacman", "ggpubr", "PerformanceAnalytics")
+has <- wants %in% rownames(x = installed.packages())
+if(any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# Load Required Data:
+data <- read.csv(file = "data/Data_Test_58.csv", header = TRUE)
+
+# Show Data:
+headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# Assumption Checking:
+# 1. It is assumed that the x and y values originate from a bivariate normal distribution,
+# and that the relationship is linear.
+
+# Use Shapiro-Wilk Normality Test:
+shapiro.test(x = data$prec_mashhad)
+shapiro.test(x = data$prec_sabzevar)
+
+# Normality Plot:
+ggqqplot(data = data$prec_mashhad, ylab = "Mashhad Prec. (mm)")
+ggqqplot(data = data$prec_sabzevar, ylab = "Sabzevar Prec. (mm)")
+
+# Visualize Data Using Scatter Plots:
+chart.Correlation(R = data[, c("prec_mashhad", "prec_sabzevar")],
+                  method = "spearman")
+
+data %>% ggscatter(x = "prec_mashhad", y = "prec_sabzevar", 
+                   add = "reg.line", conf.int = TRUE,
+                   xlab = "Mashhad Prec. (mm)", ylab = "Sabzevar Prec. (mm)")
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# Method 1:---------------------------------------------------------------------
+# Input data
+x = data$prec_mashhad
+y = data$prec_sabzevar
+n = length(x = x)
+cat("The number of observations: ", n, "\n")
+
+# Rank the x and y variables
+rank_x = rank(x = x)
+cat("Rank x: ", rank_x, "\n")
+
+rank_y = rank(x = y)
+cat("Rank y: ", rank_y, "\n")
+
+# The observed value of S statistics
+S = sum((rank_x - rank_y) ^ 2)
+cat("S statistics: ", S, "\n")
+
+# Spearman's ρ statistic
+rho = 1 - ((6 * S) / (n * ((n ^ 2) - 1)))
+cat("Spearman's ρ statistic: ", rho, "\n")
+
+# A t-score for rho which approximately follows a Student's t-distribution
+# with n − 2 degrees of freedom under the null hypothesis.
+t = rho * sqrt((n - 2) / ((1 - rho) * (1 + rho)))
+
+# Compute the critical values at 0.05 significance level (two tailed).
+alpha = 0.05
+t.half.alpha = round(x = qt(p = (1 - alpha/2), df = n - 2), digits = 2)
+
+# P-value for Spearman's rank correlation coefficient.
+p_value = 2 ∗ (1 - pt(q = t, df = n - 2))
+
+cat("t-score: ", t, "\n")
+cat("Critical values: ", c(-t.half.alpha, t.half.alpha), "\n")
+cat("P-value: ", p_value, "\n")
+
+# A z-score for rho which approximately follows a standard normal distribution
+# under the null hypothesis.
+Z = sqrt((n - 3) / 1.06) * (0.5 * log((1 + rho) / (1 - rho)))
+
+# Compute the critical values at 0.05 significance level (two tailed).
+alpha = 0.05
+z.half.alpha = round(x = qnorm(p = (1 - alpha/2)), digits = 2)
+
+# P-value for Spearman's rank correlation coefficient (Two Tailed).
+p_value = 2 ∗ (1 - pnorm(q = Z))
+
+cat("z-score: ", Z, "\n")
+cat("Critical values: ", c(-z.half.alpha, z.half.alpha), "\n")
+cat("P-value: ", p_value, "\n")
+
+# Method 2:---------------------------------------------------------------------
+# use "spearman.test" function from "pspearman" package 
+(result = spearman.test(x = data$prec_mashhad,
+                        y = data$prec_sabzevar,
+                        alternative = "two.sided", 
+                        approximation = "t-distribution"))
+
+rho = result[["estimate"]]
+statistic_point = rho * sqrt((n - 2) / ((1 - rho) * (1 + rho)))
+
+plotDistStat(dist = "t",
+             df = length(x = data$prec_mashhad) - 2,
+             to = 7,
+             alpha_level = 0.05,
+             statistic_point = statistic_point,
+             p_value = result[["p.value"]])
+
+
+```

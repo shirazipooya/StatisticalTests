@@ -1,0 +1,69 @@
+---
+title: "Test 4: Z-test for a Proportion (Binomial Distribution) Object"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# Load Required Packages:
+library(package = dplyr)
+library(package = psych)
+
+# Load Required Data:
+data = read.csv(file = "data/Data_Test_04.csv", header = TRUE) %>%
+  mutate(Khorramabad_Occr = ifelse(test = Khorramabad >= 0.1, yes = 1, no = 0),
+         Mashhad_Occr = ifelse(test = Mashhad >= 0.1, yes = 1, no = 0))
+
+# Prepare Data:
+data_1359_2017 = data %>% filter(Year < 2018)
+data_2018 = data %>% filter(Year >= 2018)
+
+# Show Data:
+headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# Assumption Checking:
+# 1. The test is approximate and assumes that the number of observations in the sample is
+#    sufficiently large (i.e. n>=30) to justify the normal approximation to the binomial.
+nrow(x = data_2018)
+```
+
+```{r Step_3}
+
+# Khorramabad:
+# setting initial parameter values:
+x_Khorramabad = sum(data_2018$Khorramabad_Occr, na.rm = TRUE)
+n_Khorramabad = length(x = data_2018$Khorramabad_Occr)
+p0_Khorramabad = mean(x = data_1359_2017$Khorramabad_Occr, na.rm = T)
+
+((x_Khorramabad / n_Khorramabad) - p0_Khorramabad) / (sqrt((p0_Khorramabad * (1 - p0_Khorramabad)) / (n_Khorramabad)))
+
+# use prop.test function - alternative = "two.sided":
+(result = prop.test(x = x_Khorramabad, n = n_Khorramabad, p = p0_Khorramabad,
+                   alternative = "two.sided", conf.level = 0.95, correct = FALSE))
+
+# Extract the Z Statistic:
+sqrt(x = result$statistic)
+
+# Mashhad:
+# setting initial parameter values:
+x_Mashhad = sum(data_2018$Mashhad_Occr, na.rm = TRUE)
+n_Mashhad = length(x = data_2018$Mashhad_Occr)
+p0_Mashhad = mean(x = data_1359_2017$Mashhad_Occr, na.rm = T)
+
+((x_Mashhad / n_Mashhad) - p0_Mashhad) / (sqrt((p0_Mashhad * (1 - p0_Mashhad)) / (n_Mashhad)))
+
+# use prop.test function - alternative = "two.sided":
+(result = prop.test(x = x_Mashhad, n = n_Mashhad, p = p0_Mashhad,
+                   alternative = "two.sided", conf.level = 0.95, correct = FALSE))
+
+# Extract the Z Statistic:
+sqrt(x = result$statistic)
+```

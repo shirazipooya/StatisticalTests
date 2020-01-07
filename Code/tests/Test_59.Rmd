@@ -1,0 +1,109 @@
+---
+title: "Test 58: The Kendall Rank Correlation Test (Paired Observations)"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# Load Required Functions:
+source(file = "muFunc.R")
+
+# Load Required Packages:
+wants <- c("dplyr", "psych", "pacman", "ggpubr", "PerformanceAnalytics")
+has <- wants %in% rownames(x = installed.packages())
+if(any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# Load Required Data:
+data <- read.csv(file = "data/Data_Test_59.csv", header = TRUE)
+
+# Show Data:
+headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# Assumption Checking:
+# Visualize Data Using Scatter Plots:
+chart.Correlation(R = data[, c("prec_mashhad", "prec_sabzevar")],
+                  method = "kendall")
+
+data %>% ggscatter(x = "prec_mashhad", y = "prec_sabzevar", 
+                   add = "reg.line", conf.int = TRUE,
+                   xlab = "Mashhad Prec. (mm)", ylab = "Sabzevar Prec. (mm)")
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# Method 1:---------------------------------------------------------------------
+# Input data
+x = data$prec_mashhad
+y = data$prec_sabzevar
+n = length(x = x)
+cat("The number of observations: ", n, "\n")
+
+mat = matrix(data = 0, nrow = n - 1, ncol = n - 1)
+colnames(x = mat) = 1:(n - 1)
+rownames(x = mat) = 2:n
+
+# Calculate for each yi, count the number of yj > yi (Nc: Concordant Pairs ) and 
+# the number of yj < yi (Nd: Discordant Pairs)
+for (i in 1:(n - 1)) {
+  for (j in (i + 1):n) {
+    val = (y[j] - y[i]) * (x[j] - x[i])
+    if (val > 0) {
+      mat[j - 1, i] = 1
+    } else {
+      mat[j - 1, i] = -1
+    }
+  }
+}
+
+# Total number of concordant pairs (Nc) - Total number of discordant pairs (Nd)
+K = sum(mat)
+cat("Nc - Nd: ", K, "\n")
+
+# Kendall correlation distance
+tau = K / (n * (n - 1) / 2)
+cat("tau: ", tau, "\n")
+
+# A z-score for rho which approximately follows a standard normal distribution
+# under the null hypothesis.
+Z = K / (sqrt((n * (n - 1) * (2 * n + 5)) / 18))
+
+# Compute the critical values at 0.05 significance level (two tailed).
+alpha = 0.05
+z.half.alpha = round(x = qnorm(p = (1 - alpha/2)), digits = 2)
+
+# P-value for Spearman's rank correlation coefficient (Two Tailed).
+p_value = 2 ∗ (1 - pnorm(q = Z))
+
+cat("z-score: ", Z, "\n")
+cat("Critical values: ", c(-z.half.alpha, z.half.alpha), "\n")
+cat("P-value: ", p_value, "\n")
+
+# Method 2:---------------------------------------------------------------------
+# use "cor.test" function from "stats" package 
+(result = cor.test(x = data$prec_mashhad,
+                   y = data$prec_sabzevar,
+                   alternative = "two.sided",
+                   method = "kendall",
+                   conf.level = 0.95))
+
+plotDistStat(dist = "Normal",
+             to = 6,
+             alpha_level = 0.05,
+             statistic_point = result[["statistic"]],
+             p_value = result[["p.value"]])
+
+# Confidence interval for Kendall's tau
+NSM3::kendall.ci(x = data$prec_mashhad,
+                 y = data$prec_sabzevar,
+                 alpha = 0.05,
+                 type = "t")
+
+```

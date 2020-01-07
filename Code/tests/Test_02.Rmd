@@ -1,0 +1,64 @@
+---
+title: "Test 2: Z-test for Two Population Means (Variances Known and Equal)"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# Load Required Packages:
+source(file = "muFunc.R")
+library(package = dplyr)
+library(package = psych)
+library(package = DescTools)
+
+# Load Required Data:
+data = read.csv(file = "data/Data_Test_02.csv", header = TRUE)
+
+# Prepare Data:
+set.seed(5)
+
+sample_A = data %>% select(Tape_A) %>% 
+  sample_n(size = 40, replace = FALSE) %>% unlist()
+
+sample_B = data %>% select(Tape_B) %>%
+  sample_n(size = 50, replace = FALSE) %>% unlist()
+
+# Show Data:
+headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# Assumption Checking:
+# 1. Both populations must have equal variances and this variance must be known.
+var(x = data$Tape_A)
+var(x = data$Tape_B)
+
+# 2. The test is accurate if the populations are normally distributed.
+shapiro.test(x = data$Tape_A)
+shapiro.test(x = data$Tape_B)
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# setting initial parameter values:
+sd_pop = sd(x = data$Tape_A)
+
+# use ZTest function:
+(result <- ZTest(x = sample_A, y = sample_B, alternative = "two.sided",
+                 mu = 0, sd_pop = sd_pop, conf.level = 0.95))
+
+plotDistStat(dist = "Normal",
+             from = -4,
+             to = 4,
+             alpha_level = 0.05,
+             statistic_point = result$statistic,
+             p_value = result$p.value)
+
+ZTest(x = sample_A, y = sample_B, alternative = "greater",
+      mu = 0, sd_pop = sd_pop, conf.level = 0.95)
+```

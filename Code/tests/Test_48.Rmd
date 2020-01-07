@@ -1,0 +1,68 @@
+---
+title: "Test 48: The Signed Rank Test for Two Means (Paired Observations)"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# Load Required Functions:
+source(file = "muFunc.R")
+
+# Load Required Packages:
+wants <- c("dplyr", "psych", "pacman", "ggpubr",
+           "PerformanceAnalytics", "lubridate", "DescTools")
+has <- wants %in% rownames(x = installed.packages())
+if(any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# Load Required Data:
+data <- read.csv(file = "data/Data_Test_48.csv", header = TRUE)
+
+set.seed(1)
+sampleData = data %>% 
+  sample_n(size = 15)
+
+# Show Data:
+headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# Visualize Data Using Box Plots:
+plotData = sampleData %>%
+  reshape2::melt(id = c("ID"), variable.name = "Station",
+                 value.name = "BOD5")
+
+ggboxplot(data = plotData, x = "Station", y = "BOD5",
+          ylab = "BOD5. (mg/l)", xlab = FALSE,
+          add = c("mean"))
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# Method 1:---------------------------------------------------------------------
+# Input data
+newData = sampleData %>% 
+  dplyr::mutate(diff_A_B = round(x = A - B, digits = 2)) %>% 
+  dplyr::filter(diff_A_B != 0) %>% 
+  dplyr::mutate(rank_diff_A_B = (rank(x = (abs(diff_A_B))) * (diff_A_B / abs(diff_A_B))))
+
+signedRank = newData$rank_diff_A_B
+
+n1 = sum(signedRank[signedRank > 0])
+n2 = sum(signedRank[signedRank < 0])
+
+V = min(n1, abs(n1))
+
+# Method 2:---------------------------------------------------------------------
+# The Sign Test for a Median with "SignTest" function from "DescTools" package
+x = sampleData$A
+y = sampleData$B
+
+wilcox.test(x = x, y = y, paired = TRUE, exact = FALSE,
+            alternative = "two.sided", conf.level = 0.95)
+```

@@ -1,0 +1,66 @@
+---
+title: "Test 47: The Signed Rank Test for a Mean"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# Load Required Functions:
+source(file = "muFunc.R")
+
+# Load Required Packages:
+wants <- c("dplyr", "psych", "pacman", "ggpubr",
+           "PerformanceAnalytics", "lubridate", "DescTools")
+has <- wants %in% rownames(x = installed.packages())
+if(any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# Load Required Data:
+data <- read.csv(file = "data/Data_Test_47.csv", header = TRUE)
+
+set.seed(1)
+nSample <- data %>% 
+  sample_n(size = 12)
+
+# Show Data:
+headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# Assumption Checking:
+# Symmetrical Population.
+cat("Symmetrical Population: ", mean(x = data$PM10) == median(x = data$PM10))
+
+# Visualize Data Using Box Plots:
+ggboxplot(data$PM10, 
+          ylab = "PM10 (ug/m3)",
+          xlab = FALSE)
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# Method 1:---------------------------------------------------------------------
+# Input data
+newData = data.frame(x = nSample$PM10)
+mu0 = 105
+
+newData = newData %>% 
+  dplyr::mutate(diff_x_mu0 = x - mu0) %>% 
+  dplyr::filter(diff_x_mu0 != 0) %>% 
+  dplyr::mutate(rank_diff_x_mu0 = (rank(x = (abs(diff_x_mu0))) * (diff_x_mu0 / abs(diff_x_mu0))))
+
+signedRank = newData$rank_diff_x_mu0
+
+n1 = sum(signedRank[signedRank > 0])
+n2 = sum(signedRank[signedRank < 0])
+
+# Method 2:---------------------------------------------------------------------
+# The Sign Test for a Median with "SignTest" function from "DescTools" package
+wilcox.test(x = nSample$PM10, mu = 105,
+            alternative = "two.sided", conf.level = 0.95, exact = FALSE)
+```
