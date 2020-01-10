@@ -1,5 +1,5 @@
 ---
-title: "Test 5: Z-test for the Equality of Two Proportions (Binomial Distribution))"
+title: "Test 5: Z-test for the Equality of Two Proportions (Binomial Distribution)"
 output:
   word_document:
     highlight: "default"
@@ -11,40 +11,91 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r Step_1, warning=FALSE, message=FALSE}
-# Load Required Packages:
-library(package = dplyr)
-library(package = psych)
+# remove all variable
+rm(list = ls())
 
-# Load Required Data:
-data = read.csv(file = "data/Data_Test_05.csv", header = TRUE) %>%
-  mutate(Khorramabad_Occr = ifelse(test = Khorramabad >= 0.1, yes = 1, no = 0),
-         Mashhad_Occr = ifelse(test = Mashhad >= 0.1, yes = 1, no = 0))
+# load required functions
+source(file = "muFunc.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr")
+has = wants %in% rownames(x = installed.packages())
+if(any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "data/Data_Test_05.csv", header = TRUE)
 
 # Prepare Data:
-data_2018 = data %>% filter(Year >= 2018)
+data = data %>% mutate(A_occ = ifelse(test = A_prec >= 0.1, yes = 1, no = 0),
+                       B_occ = ifelse(test = B_prec >= 0.1, yes = 1, no = 0))
+
+data_s = data %>% filter(Year >= 2018)
 
 # Show Data:
-headTail(x = data_2018, top = 2, bottom = 2)
+psych::headTail(x = data_s, top = 2, bottom = 2)
 ```
 
 ```{r Step_2, fig.width=4, fig.height=4, dpi=600}
-# Assumption Checking:
-# 1. The test is approximate and assumes that the number of observations in the sample is
-#    sufficiently large (i.e. n>=30) to justify the normal approximation to the binomial.
-nrow(x = data_2018)
+# assumption checking
+# 1. the number of observations in the sample is sufficiently large (i.e. n>=30).
+cat("Number of Observations:", nrow(x = data_s), "\n")
 ```
 
-```{r Step_3}
-# setting initial parameter values:
-x_Khorramabad = sum(data_2018$Khorramabad_Occr, na.rm = TRUE)
-n_Khorramabad = length(x = data_2018$Khorramabad_Occr)
-x_Mashhad = sum(data_2018$Mashhad_Occr, na.rm = TRUE)
-n_Mashhad = length(x = data_2018$Mashhad_Occr)
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values: khorramabad station
+p_A = mean(x = data_s$A_occ, na.rm = TRUE)
+x_A = sum(data_s$A_occ, na.rm = TRUE)
+n_A = length(x = data_s$A_occ)
 
-# use prop.test function - alternative = "two.sided":
-(result = prop.test(x = c(x_Khorramabad, x_Mashhad), n = c(n_Khorramabad, n_Mashhad),
-                    alternative = "two.sided", conf.level = 0.95, correct = FALSE))
+# setting initial parameter values: mashhad station
+p_B = mean(x = data_s$B_occ, na.rm = TRUE)
+x_B = sum(data_s$B_occ, na.rm = TRUE)
+n_B = length(x = data_s$B_occ)
 
-# Extract the Z Statistic:
-sqrt(x = result$statistic)
+# test statistic
+P = ((p_A * n_A) + (p_B * n_B)) / (n_A + n_B)
+Z = (p_A - p_B) / sqrt(P * (1 - P) * ((1 / n_A) + (1 / n_B)))
+
+# compute the critical values at 0.05 significance level (two tailed)
+alpha = 0.05
+two.sided = TRUE
+Zcritical = qnorm(p = (1 - alpha/2))
+
+# p-value (two tailed)
+p_value = pnorm(q = Z, lower.tail = FALSE)
+
+if (two.sided) {
+  p_value = 2 * p_value
+  if (p_value > 1) {
+    p_value = 2 - p_value
+  }
+}
+
+cat("Test Statistic: ", Z, "\n")
+cat("Critical Values: ", c(-Zcritical, Zcritical), "\n")
+cat("P-value: ", p_value, "\n")
+
+plotDistStat(dist = "Normal",
+             from = -4,
+             to = 4,
+             alpha_level = 0.05,
+             statistic_point = Z,
+             p_value = p_value)
+
+# method 2
+# setting initial parameter values: khorramabad station
+p_A = mean(x = data_s$A_occ, na.rm = TRUE)
+x_A = sum(data_s$A_occ, na.rm = TRUE)
+n_A = length(x = data_s$A_occ)
+
+# setting initial parameter values: mashhad station
+p_B = mean(x = data_s$B_occ, na.rm = TRUE)
+x_B = sum(data_s$B_occ, na.rm = TRUE)
+n_B = length(x = data_s$B_occ)
+
+# use "prop.test" function from "stats" package
+prop.test(x = c(x_A, x_B), n = c(n_A, n_B), alternative = "two.sided", 
+          conf.level = 0.95, correct = FALSE)
 ```

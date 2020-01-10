@@ -1,0 +1,87 @@
+---
+title: "Test 52: The Wilcoxon–Mann–Whitney Rank Sum Test of Two Populations"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# Load Required Functions:
+source(file = "muFunc.R")
+
+# Load Required Packages:
+wants <- c("dplyr", "psych", "pacman", "ggpubr",
+           "PerformanceAnalytics", "RVAideMemoire", "DescTools")
+has <- wants %in% rownames(x = installed.packages())
+if(any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# Load Required Data:
+sampleData = iris %>% 
+  select(Species, Sepal.Width) %>% 
+  filter(Species != "setosa")
+
+# Show Data:
+headTail(x = sampleData, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# Visualize Data Using Box Plots:
+ggboxplot(data = sampleData, x = "Species", y = "Sepal.Width",
+          ylab = "Sepal Width (cm)", xlab = FALSE,
+          add = c("mean"))
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# Method 1:---------------------------------------------------------------------
+# Input data
+summaryData = sampleData %>% group_by(Species) %>%
+  summarise(min = min(Sepal.Width), max = max(Sepal.Width))
+
+x = sampleData %>% 
+  filter(Species == "versicolor") %>% 
+  select(Sepal.Width) %>% unlist()
+
+m = length(x)
+
+x_max = summaryData[[1,3]]
+
+y = sampleData %>% 
+  filter(Species == "virginica") %>% 
+  select(Sepal.Width) %>% unlist()
+
+n = length(y)
+
+y_min = summaryData[[2,2]]
+
+# The number of X observations that are smaller than the smallest Y:
+n1 = sum(x < y_min)
+
+# The number of Y observations that are larger than the largest X:
+n2 = sum(y > x_max)
+
+# Test statistic
+D = n1 + n2
+
+if ((n >= (3 + (4 * m / 3))) & (n <= (2 * m))) {
+  D = D - 1
+} else if ((m >= (3 + (4 * n / 3))) & (m <= (2 * n))) {
+  D = D - 1
+}
+
+cat("Test Statistic (D):", D, "\n")
+
+if (D <= 7) {
+  cat("Reject The Null Hypothesis (H0) Of Equal Medians At α = 0.05", "\n")
+} else {
+  cat("Accept The Null Hypothesis (H0) Of Equal Medians At α = 0.05", "\n")
+}
+# Method 2:---------------------------------------------------------------------
+
+
+```

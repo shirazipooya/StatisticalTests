@@ -1,0 +1,140 @@
+---
+title: "Test 21: Dixon’s Test for Outliers"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# Remove All Variable
+rm(list = ls())
+
+# Load Required Functions:
+source(file = "muFunc.R")
+
+# Load Required Packages:
+wants = c("dplyr", "psych", "pacman", "ggpubr", "outliers")
+has = wants %in% rownames(x = installed.packages())
+if(any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# Load Required Data:
+data = read.csv(file = "data/Data_Test_21.csv", header = TRUE)
+
+set.seed(1361)
+nSample = data %>% sample_n(size = 24)
+
+# Show Data:
+headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# Assumption Checking:
+# 1. The sample size should be greater than 3.
+cat("Sample Size Greater Than 3:", (nrow(nSample) > 3), "\n")
+
+# 2. The population which is being sampled is assumed normal.
+# Use Shapiro-Wilk Normality Test:
+shapiro.test(x = data$Prec)
+
+# Normality Plot:
+ggqqplot(data = data$Prec, ylab = "Precipitation (mm)")
+
+# Visualize Data Using Density Plot:
+ggdensity(data = data, x = "Prec", fill = "gray",
+          xlab = "Precipitation (mm)", add = c("mean"))
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# Method 1:---------------------------------------------------------------------
+# Setting Initial Parameter Values:
+x = sort(x = nSample$Prec)
+n = length(x = x)
+
+# Select Type
+if (n <= 7) {
+  type = 10
+} else if (n > 7 & n <= 10) {
+  type = 11
+} else if (n > 10 & n <= 13) {
+  type = 21
+} else {
+  type = 22
+}
+
+# Test Statistic:
+# check not the value with lowest difference from the mean
+if (type == 10) {
+  Qmin = (x[2] - x[1]) / (x[n] - x[1])
+} else if (type == 11) {
+  Qmin = (x[2] - x[1]) / (x[n-1] - x[1])
+} else if (type == 21) {
+  Qmin = (x[3] - x[1]) / (x[n-1] - x[1])
+} else {
+  Qmin = (x[3] - x[1]) / (x[n-2] - x[1])
+}
+
+# Compute the critical values at 0.05 significance level (Two Tailed).
+alpha = 0.05
+two.sided = TRUE
+Qcritical = qdixon(p = alpha, n = n, type = type)
+
+# P-value (Two Tailed).
+p_value = pdixon(q = Qmin, n = n, type = type)
+
+if (two.sided) {
+  p_value = 2 * p_value
+  if (p_value > 1) {
+    p_value = 2 - p_value
+  }
+}
+
+cat("Lowest Value:", x[1], "\n")
+cat("Test Statistic: ", Qmin, "\n")
+cat("Critical Values: ", Qcritical, "\n")
+cat("P-value: ", p_value, "\n")
+
+# check not the value with largest difference from the mean
+if (type == 10) {
+  Qmax = (x[n] - x[n-1]) / (x[n] - x[1])
+} else if (type == 11) {
+  Qmax = (x[n] - x[n-1]) / (x[n] - x[2])
+} else if (type == 21) {
+  Qmax = (x[n] - x[n-2]) / (x[n] - x[2])
+} else {
+  Qmax = (x[n] - x[n-2]) / (x[n] - x[3])
+}
+
+# Compute the critical values at 0.05 significance level (Two Tailed).
+alpha = 0.05
+two.sided = TRUE
+Qcritical = qdixon(p = alpha, n = n, type = type)
+
+# P-value (Two Tailed).
+p_value = pdixon(q = Qmax, n = n, type = type)
+
+if (two.sided) {
+  p_value = 2 * p_value
+  if (p_value > 1) {
+    p_value = 2 - p_value
+  }
+}
+
+cat("Highest Value:", x[n], "\n")
+cat("Test Statistic: ", Qmax, "\n")
+cat("Critical Values: ", Qcritical, "\n")
+cat("P-value: ", p_value, "\n")
+
+# Method 2:---------------------------------------------------------------------
+# use "dixon.test" function from "outliers" package
+# check not the value with lowest difference from the mean
+dixon.test(x = nSample$Prec, opposite = TRUE, two.sided = TRUE)
+
+# check not the value with largest difference from the mean
+dixon.test(x = nSample$Prec, opposite = FALSE, two.sided = TRUE)
+```

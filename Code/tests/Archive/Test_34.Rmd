@@ -1,0 +1,98 @@
+---
+title: "Test 34: Cochran’s Test for Variance Outliers"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# Remove All Variable
+rm(list = ls())
+
+# Load Required Functions:
+source(file = "muFunc.R")
+
+# Load Required Packages:
+wants <- c("dplyr", "psych", "pacman", "ggplot2",
+           "PerformanceAnalytics", "miscor", "outliers")
+has <- wants %in% rownames(x = installed.packages())
+if(any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# Load Required Data:
+data <- read.csv(file = "data/Data_Test_34.csv", header = TRUE)
+
+# Show Data:
+headTail(x = data)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# Assumption Checking:
+# 1. It is assumed that the K samples are taken from normally distributed populations.
+
+# Use Shapiro-Wilk Normality Test:
+shapiro.test(x = data$Yield)
+
+# Normality Plot:
+ggqqplot(data = data$Yield, ylab = "Yield (kg/ha)")
+
+# Visualize Data Using Density Plot:
+ggplot(data = data, aes(x = "", y = Yield)) +
+  geom_boxplot() + 
+  ylab(label = "Yield (kg/ha)") + 
+  xlab(label = "Khorasan Razavi")
+```
+
+```{r Step_3}
+# Method 1:---------------------------------------------------------------------
+# Setting Initial Parameter Values:
+set.seed(seed = 1)
+n = n1 = n2 = n3 = n4 = n5 = 25
+k = 5
+
+d1 = data %>% sample_n(size = n1) %>% select(Yield) %>% unlist()
+v1 = var(x = d1)
+
+d2 = data %>% sample_n(size = n2) %>% select(Yield) %>% unlist()
+v2 = var(x = d2)
+
+d3 = data %>% sample_n(size = n3) %>% select(Yield) %>% unlist()
+v3 = var(x = d3)
+
+d4 = data %>% sample_n(size = n4) %>% select(Yield) %>% unlist()
+v4 = var(x = d4)
+
+d5 = data %>% sample_n(size = n5) %>% select(Yield) %>% unlist()
+v5 = var(x = d5)
+
+v = c(v1, v2, v3, v4, v5)
+
+# Test Statistic
+C = max(v) / sum(v)
+
+# Compute the critical values at 0.05 significance level (two tailed).
+alpha = 0.05
+criVal = qcochran(p = (1 - alpha), n = n, k = k)
+
+# P-value (Two Tailed).
+two.sided = TRUE
+p_value = 1 - pcochran(q = C, n = n, k = k)
+
+cat("Test Statistic: ", C, "\n")
+cat("Critical Values: ", criVal, "\n")
+cat("P-value: ", p_value, "\n")
+
+# Method 2:---------------------------------------------------------------------
+# setting initial parameter values:
+
+# use "cochran.test" function from "outliers" package
+cochran.test(object = v, 
+             data = rep(x = n, k),
+             inlying = FALSE)
+```
+

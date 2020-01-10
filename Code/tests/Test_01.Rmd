@@ -1,10 +1,9 @@
 ---
-title: "Test 01: Z-test for a population mean (variance known)"
+title: "Test 01: Z-test for a Population Mean (Variance Known)"
 output:
   word_document:
     highlight: "default"
     reference_docx: word_styles.docx
-   
 ---
 
 ```{r setup, include=FALSE}
@@ -12,43 +11,90 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r Step_1, warning=FALSE, message=FALSE}
+# Remove All Variable
+rm(list = ls())
+
+# Load Required Functions:
+source(file = "muFunc.R")
+
 # Load Required Packages:
-library(package = dplyr)
-library(package = DescTools)
-library(package = miscor)
-library(package = psych)
+wants = c("pacman", "dplyr", "psych", "ggpubr", "DescTools")
+has = wants %in% rownames(x = installed.packages())
+if(any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
 
 # Load Required Data:
 data <- read.csv(file = "data/Data_Test_01.csv", header = TRUE)
 
 # Prepare Data:
-data_84_97 <- data %>% filter(Year != "1397-98")
-headTail(x = data_84_97, top = 3, bottom = 3)
+data_p <- data %>% dplyr::filter(Year != "1397-98")
+data_s <- data %>% dplyr::filter(Year == "1397-98")
 
-data_97_98 <- data %>% filter(Year == "1397-98")
-headTail(x = data_97_98, top = 3, bottom = 3)
+# Show Data:
+psych::headTail(x = data_s, top = 3, bottom = 3)
 ```
 
 ```{r Step_2, fig.width=4, fig.height=4, dpi=600}
 # Assumption Checking:
 # 1. It is necessary that the population variance is known.
-pop_var <- var(x = data_84_97$Razavi_Khorasan)
-pop_var
+cat("Population Variance is:", var(x = data_p$Yield), "\n")
 
 # 2. The test is accurate if the population is normally distributed.
-shapiro.test(data_84_97$Razavi_Khorasan)
+# Use Shapiro-Wilk Normality Test:
+shapiro.test(data_p$Yield)
+
+# Normality Plot:
+ggpubr::ggqqplot(data = data_p$Yield, ylab = "Yield (kg/ha)")
 ```
 
-```{r Step_3}
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# Method 1:---------------------------------------------------------------------
+# Setting Initial Parameter Values:
+# Population
+mu_p = mean(x = data_p$Yield)
+sd_p = sd(x = data_p$Yield)
+
+# Random Sample
+n = nrow(x = data_s)
+mu_x = mean(x = data_s$Yield)
+
+# Test Statistic
+Z = (mu_x - mu_p) / (sd_p / sqrt(n))
+
+# Compute the critical values at 0.05 significance level (Two Tailed).
+alpha = 0.05
+two.sided = TRUE
+Zcritical = qnorm(p = (1 - alpha/2))
+
+# P-value (Two Tailed).
+p_value = pnorm(q = Z, lower.tail = FALSE)
+
+if (two.sided) {
+  p_value = 2 * p_value
+  if (p_value > 1) {
+    p_value = 2 - p_value
+  }
+}
+
+cat("Test Statistic: ", Z, "\n")
+cat("Critical Values: ", c(-Zcritical, Zcritical), "\n")
+cat("P-value: ", p_value, "\n")
+
+plotDistStat(dist = "Normal",
+             from = -8,
+             to = 8,
+             alpha_level = 0.05,
+             statistic_point = Z,
+             p_value = p_value)
+
+# Method 2:---------------------------------------------------------------------
 # setting initial parameter values:
-mu_1396_97 <- data_84_97[which(data_84_97$Year == "1396-97"), "Razavi_Khorasan"]
-sd_pop <- sd(data_84_97$Razavi_Khorasan)
+# Population
+mu_p = mean(x = data_p$Yield)
+sd_p = sd(x = data_p$Yield)
 
-# use ZTest function:
-ZTest(x = data_97_98$Razavi_Khorasan, alternative = "two.sided",
-      mu = mu_1396_97, sd_pop = sd_pop, conf.level = 0.95)
-
-ZTest(x = data_97_98$Razavi_Khorasan, alternative = "greater",
-      mu = mu_1396_97, sd_pop = sd_pop, conf.level = 0.95)
+# use "ZTest" function from "DescTools" package
+DescTools::ZTest(x = data_s$Yield, mu = mu_p, sd_pop = sd_p,
+      alternative = "two.sided", conf.level = 0.95)
 ```
 

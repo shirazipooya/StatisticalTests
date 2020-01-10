@@ -13,6 +13,18 @@ plotDistStat <- function(dist = "Chi-Squared",
   
   if (dist == "Chi-Squared") {
     
+    # Find Upper and Lower Values for Middle 95% of Distribution
+    lower95 <- qchisq(p = (alpha_level / 2), df = df)
+    upper95 <- qchisq(p = (1 - (alpha_level / 2)), df = df)
+    
+    # Create Vector of x Values
+    x_lower95 <- seq(from = from, to = lower95, by = 0.001)
+    x_upper95 <- seq(from = upper95, to = to, by = 0.001)
+    
+    # Create Vector of Chi-Square Density Values
+    p_lower95 <- dchisq(x = x_lower95, df = df)
+    p_upper95 <- dchisq(x = x_upper95, df = df)
+    
     # Create Density Curve
     curve(expr = dchisq(x = x, df = df),
           from = from,
@@ -22,27 +34,11 @@ plotDistStat <- function(dist = "Chi-Squared",
           lwd = 3,
           add = FALSE)
     
-    # Find Upper and Lower Values for Middle 95% of Distribution
-    lower95 <- qchisq(p = (alpha_level / 2), df = df)
-    upper95 <- qchisq(p = (1 - (alpha_level / 2)), df = df)
-    
-    # Create Vector of x Values
-    x_lower95 <- seq(from = from, to = lower95, by = 0.001)
-    
-    # Create Vector of Chi-Square Density Values
-    p_lower95 <- dchisq(x = x_lower95, df = df)
-    
     # Fill in Portion of the Density Plot to from from Lower 95% Value
     polygon(x = c(x_lower95, rev(x = x_lower95)),
             y = c(p_lower95, rep(x = 0, length(p_lower95))),
             col = adjustcolor(col = 'red', alpha = 0.6),
             border = NA)
-    
-    # Create Vector of x Values
-    x_upper95 <- seq(from = upper95, to = to, by = 0.001)
-    
-    # Create Vector of Chi-Square Density Values
-    p_upper95 <- dchisq(x = x_upper95, df = df)
     
     # Fill in Portion of the Density Plot for Upper 95% Vvalue to End of Plot
     polygon(x = c(x_upper95, rev(x = x_upper95)),
@@ -242,7 +238,7 @@ plotDistStat <- function(dist = "Chi-Squared",
     
     # Add Text
     mtext(text = paste0("t = ",
-                        round(x = statistic_point, digits = 2),
+                        round(x = statistic_point, digits = 4),
                         "\n",
                         "p-value = ",
                         round(x = p_value, digits = 4)), 

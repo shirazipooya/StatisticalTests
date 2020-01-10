@@ -1,0 +1,84 @@
+---
+title: "Test 6: Z-test for Comparing Two Counts (Poisson Distribution)"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "muFunc.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr")
+has = wants %in% rownames(x = installed.packages())
+if(any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "data/Data_Test_06.csv", header = TRUE)
+
+# Prepare Data:
+set.seed(33)
+A = data %>% select(Kerman) %>% sample_n(size = 15) %>% unlist()
+B = data %>% select(Zahedan) %>% sample_n(size = 12) %>% unlist()
+
+# Show Data:
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# assumption checking
+# 1. the number of observations in the sample is sufficiently large (i.e. n>=30).
+cat("Number of Counts (Kerman):", sum(A), "\n")
+cat("Number of Counts (Zahedan):", sum(B), "\n")
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# setting initial parameter values: kerman station 
+n_A = sum(A)
+t_A = length(x = A)
+R_A = n_A / t_A
+
+# setting initial parameter values: zahedan station
+n_B = sum(B)
+t_B = length(x = B)
+R_B = n_B / t_B
+
+# test statistic
+Z = (R_A - R_B) / sqrt((R_A / t_A) + (R_B / t_B))
+
+# compute the critical values at 0.05 significance level (two tailed)
+alpha = 0.05
+two.sided = TRUE
+Zcritical = qnorm(p = (1 - alpha/2))
+
+# p-value (two tailed)
+p_value = pnorm(q = Z, lower.tail = FALSE)
+
+if (two.sided) {
+  p_value = 2 * p_value
+  if (p_value > 1) {
+    p_value = 2 - p_value
+  }
+}
+
+cat("Test Statistic: ", Z, "\n")
+cat("Critical Values: ", c(-Zcritical, Zcritical), "\n")
+cat("P-value: ", p_value, "\n")
+
+plotDistStat(dist = "Normal",
+             from = -6,
+             to = 6,
+             alpha_level = 0.05,
+             statistic_point = Z,
+             p_value = p_value)
+```

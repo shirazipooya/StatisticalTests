@@ -1,0 +1,93 @@
+---
+title: "Test 50: The Median Test of Two Populations"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# Load Required Functions:
+source(file = "muFunc.R")
+
+# Load Required Packages:
+wants <- c("dplyr", "psych", "pacman", "ggpubr",
+           "PerformanceAnalytics", "RVAideMemoire", "DescTools")
+has <- wants %in% rownames(x = installed.packages())
+if(any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# Load Required Data:
+data <- read.csv(file = "data/Data_Test_50.csv", header = TRUE)
+
+set.seed(1)
+sampleData = data %>% 
+  sample_n(size = 50) %>% 
+  reshape2::melt(id = c("sample"), variable.name = "Variety",
+                 value.name = "Yield")
+
+# Show Data:
+headTail(x = sampleData, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# Visualize Data Using Box Plots:
+ggboxplot(data = sampleData, x = "Variety", y = "Yield",
+          ylab = "Yield (kg/ha)", xlab = FALSE,
+          add = c("mean"))
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# Method 1:---------------------------------------------------------------------
+# Input data
+dataYield = sampleData$Yield
+dataVariety = sampleData$Variety
+
+# The median of the all yield data. 
+medYield = median(x = dataYield)
+cat("Median: ", medYield, "\n")
+
+# The number of elements above and below this median can be found.
+(cont = table(dataYield > medYield, dataVariety))
+
+# The test statistic is:
+a = cont[1,1]
+b = cont[1,2]
+c = cont[2,1]
+d = cont[2,2]
+N = sum(cont)
+
+ts = (((abs((a*d) - (b*c)) - (0.5*N)) ^ 2) * N) / ((a+b) * (a+c) * (b+d) * (c+d))
+cat("The Test Statistic is:", ts)
+
+# Critical value:
+a = qchisq(p = 0.05, df = 1, lower.tail = TRUE)
+b = qchisq(p = 0.05, df = 1, lower.tail = FALSE)
+cat("Critical Value: (",a, ",", b, ")", "\n")
+
+# Compute the two-tailed p-value of the test statistic
+p_value = pchisq(q = ts, df = 1, lower.tail = FALSE)
+cat("P-Value:", p_value, "\n")
+
+# Or use Pearson's Chi-squared Test for Count Data
+chisq.test(x = cont)
+
+# Method 2:---------------------------------------------------------------------
+# The Median Test of Two Populations with
+# "mood.medtest" function from "RVAideMemoire" package
+(result = mood.medtest(formula = Yield ~ Variety, 
+                      data = sampleData,
+                      exact = FALSE))
+
+plotDistStat(dist = "Chi-Squared",
+             df = 1,
+             from = -0.05,
+             to = 6,
+             alpha_level = 0.05,
+             statistic_point = result$statistic,
+             p_value = result$p.value)
+```
