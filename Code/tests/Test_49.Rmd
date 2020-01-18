@@ -1,0 +1,98 @@
+---
+title: "Test 49: The Wilcoxon Inversion Test (U-test)"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "muFunc.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "data/Data_Test_49.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+data = data %>%
+  reshape2::melt(id = c("Year"), variable.name = "Station", value.name = "Soil.Temp") %>%
+  na.omit()
+
+# Visualize Data Using Box Plots:
+ggpubr::ggboxplot(data = data, x = "Station", y = "Soil.Temp",
+                  ylab = "Soil Temp. (C)", xlab = FALSE,
+                  add = c("mean"))
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values
+x = data %>% filter(Station == "Mashhad") %>% select(Soil.Temp) %>% unlist()
+x.n = length(x = x)
+
+y = data %>% filter(Station == "Kerman") %>% select(Soil.Temp) %>% unlist()
+y.n = length(x = y)
+
+# test Statistic
+r = rank(x = c(x, y))
+W = sum(r[seq_along(along.with = x)]) - (x.n * (x.n + 1) / 2)
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "two.sided"
+
+if (alternative != "two.sided") {
+  lower.critical = qwilcox(p = (1 - alpha), m = x.n, n = y.n, lower.tail = FALSE)
+  upper.critical = qwilcox(p = (1 - alpha), m = x.n, n = y.n, lower.tail = TRUE)
+} else {
+  lower.critical = qwilcox(p = (1 - (alpha / 2)), m = x.n, n = y.n, lower.tail = FALSE)
+  upper.critical = qwilcox(p = (1 - (alpha / 2)), m = x.n, n = y.n, lower.tail = TRUE)
+}
+
+p_value = switch(EXPR = alternative,
+                 two.sided = {
+                   if (W > ((x.n * y.n) / 2)) {
+                     p = pwilcox(q = (W - 1), m = x.n, n = y.n, lower.tail = FALSE)
+                   } else {
+                     pwilcox(q = W, m = x.n, n = y.n)
+                   }
+                   min(2 * p, 1)
+                 },
+                 less = pwilcox(q = W, m = x.n, n = y.n),
+                 greater = pwilcox(q = (W - 1), m = x.n, n = y.n, lower.tail = FALSE))
+
+cat("Test Statistic: ", W, "\n")
+cat("Critical Values: ", c(lower.critical, upper.critical), "\n")
+cat("P-value: ", p_value, "\n")
+
+plotDistStat(dist = "Wilcoxon",
+             m = x.n,
+             n = y.n,
+             from = 300,
+             to = 900,
+             alpha_level = 0.05,
+             statistic_point = W,
+             p_value = p_value)
+
+# method 2
+# use "wilcox.test" function from "stats" package
+wilcox.test(x = x, y = y, alternative = "two.sided", 
+            conf.level = 0.95, exact = FALSE)
+```

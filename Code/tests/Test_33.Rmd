@@ -1,0 +1,78 @@
+---
+title: "Test 33: The w/s-test for Normality of a Population"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "muFunc.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "data/Data_Test_33.csv", header = TRUE)
+cv_table = read.csv(file = "data/Table_14.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# normality plot
+ggqqplot(data = data$Prec, ylab = "Precipitation (mm)")
+
+# visualize data using scatter plots
+data %>% ggdensity(x = "Prec", fill = "gray",
+                   xlab = "Precipitation (mm)", add = c("mean"))
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# setting initial parameter values
+x = data$Prec
+x.n = length(x = x)
+x.m = mean(x)
+
+# sample standard deviation (s)
+x.s = sqrt(x = ((sum((x - x.m) ^ 2) / (x.n - 1)))) # x.s = sd(x = x)
+
+# sample range (w)
+x.sorted = sort(x = x, decreasing = FALSE)
+x.w = x.sorted[x.n] - x.sorted[1]
+
+# test statistic
+q = x.w / x.s
+
+# compute the critical values and p-value
+alpha = "0.050"
+
+cv = switch(EXPR = alpha,
+            "0.000" = cv_table %>% filter(n >= x.n) %>% select(a000, b000) %>% slice(1),
+            "0.005" = cv_table %>% filter(n >= x.n) %>% select(a005, b005) %>% slice(1),
+            "0.010" = cv_table %>% filter(n >= x.n) %>% select(a010, b010) %>% slice(1),
+            "0.025" = cv_table %>% filter(n >= x.n) %>% select(a025, b025) %>% slice(1),
+            "0.050" = cv_table %>% filter(n >= x.n) %>% select(a050, b050) %>% slice(1),
+            "0.100" = cv_table %>% filter(n >= x.n) %>% select(a100, b100) %>% slice(1))
+
+
+cat("Test Statistic:", q, "\n")
+cat("Critical Values:", c(cv[[1]], cv[[2]]), "\n")
+if (q < cv[[1]] & q > cv[[2]]) {
+  cat("Reject H0: Sample Distribution Cannot Be Considered As A Normal Distribution", "\n")
+} else {
+  cat("Accept H0: Sample Distribution Can Be Considered As A Normal Distribution", "\n")
+}
+```

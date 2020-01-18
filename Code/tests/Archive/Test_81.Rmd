@@ -88,6 +88,8 @@ mod <- lm(formula = y ~ x, data = nSample)
 
 summary(mod)
 
+anova(mod)
+
 car::linearHypothesis(mod, , c("(Intercept) = 0", "repwt = 1"), test = "Chisq")
 
 

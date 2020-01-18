@@ -1,0 +1,83 @@
+---
+title: "Test 52: The Wilcoxon–Mann–Whitney Rank Sum Test of Two Populations"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "muFunc.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "data/Data_Test_52.csv", header = TRUE)
+
+data = data %>%
+  reshape2::melt(variable.name = "Tape", value.name = "Yield") %>%
+  na.omit()
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# visualize data using box plots
+ggpubr::ggboxplot(data = data, x = "Tape", y = "Yield",
+                  ylab = "Yield (kg/ha)", xlab = FALSE,
+                  add = c("mean"))
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# setting initial parameter values
+rankedData = data %>% 
+  dplyr::mutate(Yield = round(x = Yield, digits = 2)) %>% 
+  dplyr::mutate(Rank = rank(x = Yield))
+
+nA = sum(rankedData$Tape == "A")
+RA = sum(rankedData %>% filter(Tape == "A") %>% select(Rank))
+
+nB = sum(rankedData$Tape == "B")
+RB = sum(rankedData %>% filter(Tape == "B") %>% select(Rank))
+
+# size of the combined samples 
+N = nA + nB
+
+# rank sum R of the smaller sample and n denote the size of the smaller sample
+if (nA < nB) {
+  n = nA
+  R = RA
+} else if (nA > nB) {
+  n = nB
+  R = RB
+} else {
+  if (RA < RB) {
+    n = nA
+    R = RA
+  } else {
+    n = nB
+    R = RB
+  }
+}
+
+# second quantity
+Rprime = (n * (N + 1)) - R
+
+cat("n1:", max(nA, nB), "\n")
+cat("n2:", min(nA, nB), "\n")
+cat("R:", R, "\n")
+cat("R':", Rprime, "\n")
+```

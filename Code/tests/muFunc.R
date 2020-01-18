@@ -1,13 +1,127 @@
-plotDistStat <- function(dist = "Chi-Squared",
-                         df = 10,
-                         df1 = 1,
-                         df2 = 1,
+
+plotDistStat <- function(distribution,
+                         statistic,
+                         alpha,
+                         alternative,
                          from = NULL,
                          to = NULL,
-                         alpha_level = 0.05,
-                         statistic_point,
-                         p_value
+                         # The Normal Distribution
+                         mean = 0,
+                         sd = 1,
+
+                         df = NULL,
+                         df1 = NULL,
+                         df2 = NULL,
+                         m = NULL,
+                         n = NULL,
+
                          ) {
+  
+  
+  p_value = pf(q = FF, df1 = df1, df2 = df2, lower.tail = TRUE)
+  p_value = switch(EXPR = alternative,
+                   two.sided = 2 * min(p_value, 1 - p_value),
+                   less = p_value,
+                   greater = 1 - p_value)
+  
+  
+  
+  # The Normal Distribution
+  
+  if (distribution == "norm") {
+    
+    if (alternative == "two.sided") {
+      
+      # Find Upper and Lower Values
+      lowerValue <- qnorm(p = (alpha / 2), mean = 0, sd = 1, lower.tail = TRUE)
+      upperValue <- qnorm(p = (alpha / 2), mean = 0, sd = 1, lower.tail = FALSE)
+      
+      
+      if (is.null(x = from)) {
+        if (abs(x = statistic) < 3) {
+          from = -3
+          to = 3
+        } else{
+          from = ceiling(x = abs(x = statistic)) * -1
+          to = abs(x = from)
+        }
+      }
+      
+      # Create Vector of x Values
+      x_lower95 <- seq(from = -to, to = lower95, by = 0.001)
+      x_upper95 <- seq(from = upper95, to = to, by = 0.001)
+      
+      
+      
+    }
+    
+    
+    
+
+    
+
+    
+    # Create Vector of Chi-Square Density Values
+    p_lower95 <- dnorm(x = x_lower95, mean = 0, sd = 1)
+    p_upper95 <- dnorm(x = x_upper95, mean = 0, sd = 1)
+    
+    # Create Density Curve
+    curve(expr = dnorm(x = x, mean = 0, sd = 1),
+          from = -to,
+          to = to,
+          xlab = paste0(dist, " Statistic"),
+          ylab = "Probability Density",
+          lwd = 3,
+          add = FALSE)
+    
+    # Fill in Portion of the Density Plot to from from Lower 95% Value
+    polygon(x = c(x_lower95, rev(x = x_lower95)),
+            y = c(p_lower95, rep(x = 0, length(p_lower95))),
+            col = adjustcolor(col = 'red', alpha = 0.6),
+            border = NA)
+    
+    # Fill in Portion of the Density Plot for Upper 95% Vvalue to End of Plot
+    polygon(x = c(x_upper95, rev(x = x_upper95)),
+            y = c(p_upper95, rep(0, length(p_upper95))),
+            col = adjustcolor(col = 'red', alpha=0.6),
+            border = NA)
+    
+    # Add Statistic Point
+    points(x = statistic_point,
+           y = dnorm(x = statistic_point, mean = 0, sd = 1),
+           pch = 21,
+           cex = 1.5,
+           col = "black",
+           bg = "deepskyblue")
+    
+    # Add Text
+    mtext(text = paste0("z = ",
+                        round(x = statistic_point, digits = 2),
+                        "\n",
+                        "p-value = ",
+                        round(x = p_value, digits = 4)), 
+          side = 3)
+  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   # Chi-Squared Distribution:
   
@@ -68,60 +182,7 @@ plotDistStat <- function(dist = "Chi-Squared",
   }
   
   
-  # Normal Distribution:
-  
-  if (dist == "Normal") {
     
-    # Find Upper and Lower Values for Middle 95% of Distribution
-    lower95 <- qnorm(p = (alpha_level / 2), mean = 0, sd = 1)
-    upper95 <- qnorm(p = (1 - (alpha_level / 2)), mean = 0, sd = 1)
-    
-    # Create Vector of x Values
-    x_lower95 <- seq(from = -to, to = lower95, by = 0.001)
-    x_upper95 <- seq(from = upper95, to = to, by = 0.001)
-    
-    # Create Vector of Chi-Square Density Values
-    p_lower95 <- dnorm(x = x_lower95, mean = 0, sd = 1)
-    p_upper95 <- dnorm(x = x_upper95, mean = 0, sd = 1)
-    
-    # Create Density Curve
-    curve(expr = dnorm(x = x, mean = 0, sd = 1),
-          from = -to,
-          to = to,
-          xlab = paste0(dist, " Statistic"),
-          ylab = "Probability Density",
-          lwd = 3,
-          add = FALSE)
-
-    # Fill in Portion of the Density Plot to from from Lower 95% Value
-    polygon(x = c(x_lower95, rev(x = x_lower95)),
-            y = c(p_lower95, rep(x = 0, length(p_lower95))),
-            col = adjustcolor(col = 'red', alpha = 0.6),
-            border = NA)
-
-    # Fill in Portion of the Density Plot for Upper 95% Vvalue to End of Plot
-    polygon(x = c(x_upper95, rev(x = x_upper95)),
-            y = c(p_upper95, rep(0, length(p_upper95))),
-            col = adjustcolor(col = 'red', alpha=0.6),
-            border = NA)
-    
-    # Add Statistic Point
-    points(x = statistic_point,
-           y = dnorm(x = statistic_point, mean = 0, sd = 1),
-           pch = 21,
-           cex = 1.5,
-           col = "black",
-           bg = "deepskyblue")
-    
-    # Add Text
-    mtext(text = paste0("z = ",
-                        round(x = statistic_point, digits = 2),
-                        "\n",
-                        "p-value = ",
-                        round(x = p_value, digits = 4)), 
-          side = 3)
-  }
-  
   # F Distribution:
   
   if (dist == "F") {
@@ -231,6 +292,58 @@ plotDistStat <- function(dist = "Chi-Squared",
     # Add Statistic Point
     points(x = statistic_point,
            y = dt(x = statistic_point, df = df),
+           pch = 21,
+           cex = 1.5,
+           col = "black",
+           bg = "deepskyblue")
+    
+    # Add Text
+    mtext(text = paste0("t = ",
+                        round(x = statistic_point, digits = 4),
+                        "\n",
+                        "p-value = ",
+                        round(x = p_value, digits = 4)), 
+          side = 3)
+  }
+  
+  if (dist == "Wilcoxon") {
+    
+    # Find Upper and Lower Values for Middle 95% of Distribution
+    lower95 <- qwilcox(p = (alpha_level / 2), m = m, n = n)
+    upper95 <- qwilcox(p = (1 - (alpha_level / 2)), m = m, n = n)
+    
+    # Create Vector of x Values
+    x_lower95 <- seq(from = from, to = lower95, by = 1)
+    x_upper95 <- seq(from = upper95, to = to, by = 1)
+    
+    # Create Vector of F Density Values
+    p_lower95 <- dwilcox(x = x_lower95, m = m, n = n)
+    p_upper95 <- dwilcox(x = x_upper95, m = m, n = n)
+    
+    # Create Density Curve
+    curve(expr = dwilcox(x = x, m = m, n = n),
+          from = from,
+          to = to,
+          xlab = paste0(dist, " Statistic"),
+          ylab = "Probability Density",
+          lwd = 3,
+          add = FALSE)
+    
+    # Fill in Portion of the Density Plot to from from Lower 95% Value
+    polygon(x = c(x_lower95, rev(x = x_lower95)),
+            y = c(p_lower95, rep(x = 0, length(p_lower95))),
+            col = adjustcolor(col = 'red', alpha.f = 0.6),
+            border = NA)
+    
+    # Fill in Portion of the Density Plot for Upper 95% Vvalue to End of Plot
+    polygon(x = c(x_upper95, rev(x = x_upper95)),
+            y = c(p_upper95, rep(0, length(p_upper95))),
+            col = adjustcolor(col = 'red', alpha.f = 0.6),
+            border = NA)
+    
+    # Add Statistic Point
+    points(x = statistic_point,
+           y = dwilcox(x = statistic_point, m = m, n = n),
            pch = 21,
            cex = 1.5,
            col = "black",

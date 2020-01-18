@@ -1,0 +1,91 @@
+---
+title: "Test 17: F-test for Two Population Variances (with Correlated Observations)"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "muFunc.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr", "EnvStats")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "data/Data_Test_17.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# 1. correlation exists between the paired observations
+PerformanceAnalytics::chart.Correlation(R = data[, c("Before", "After")])
+
+# visualize data using scatter plots
+data %>% ggpubr::ggscatter(x = "Before", y = "After",
+                           add = "reg.line", conf.int = TRUE,
+                           xlab = "Income - Before (Million Rial)",
+                           ylab = "Income - After (Million Rial)") %>%
+  ggExtra::ggMarginal(type = "boxplot", fill = "gray90")
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# setting initial parameter values
+x = data$Before
+x.m = mean(x = x)
+x.v = var(x = x)
+
+y = data$After
+y.m = mean(x = y)
+y.v = var(x = y)
+
+n = nrow(data)
+
+# correlation coefficient (r)
+r.numerator = sum((x - x.m) * (y - y.m))
+r.denominator = sqrt(sum((x - x.m) ^ 2) * sum((y - y.m) ^ 2))
+r = r.numerator / r.denominator
+
+# variance ratio (F)
+if (x.v >= y.v) {
+  FF = x.v / y.v
+} else {
+  FF = y.v / x.v
+}
+
+# test statistic
+gamma.F = (FF - 1) / sqrt(((F + 1) ^ 2) - (4 * F * (r ^ 2)))
+
+# degrees of freedom
+df = n - 2
+
+# compute the critical values
+alpha = 0.05
+alternative = "two.sided"
+
+if (alternative != "two.sided") {
+  t.critical = qt(p = (1 - alpha), df = df, lower.tail = FALSE)
+  r.critical = sqrt((t.critical^2) / ((t.critical^2) + df))
+} else {
+  t.critical = qt(p = (1 - (alpha / 2)), df = df, lower.tail = FALSE)
+  r.critical = sqrt((t.critical^2) / ((t.critical^2) + df))
+}
+
+cat("Test Statistic:", gamma.F, "\n")
+cat("Degrees of Freedom:", df, "\n")
+cat("Critical Values:", c(-r.critical, r.critical), "\n")
+
+```

@@ -1,0 +1,98 @@
+---
+title: "Test 16: F-test for Two Population Variances (Variance Ratio Test)"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "muFunc.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "data/Data_Test_16.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+dataPlot = data %>% filter(Species != "versicolor")
+
+# visualizing samples with box plots
+ggpubr::ggboxplot(data = dataPlot, x = "Species", y = "Sepal.Width", 
+                  fill = "gray", add = "mean", ylab = "Sepal Width (cm)")
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values
+x = data %>% filter(Species == "setosa") %>% select(Sepal.Width) %>% unlist()
+x.n = length(x = x)
+x.m = mean(x = x)
+x.v = var(x = x)
+
+y = data %>% filter(Species == "virginica") %>% select(Sepal.Width) %>% unlist()
+y.n = length(x = y)
+y.m = mean(x = y)
+y.v = var(x = y)
+
+# test statistic
+FF = x.v / y.v
+
+# degrees of freedom
+df1 = x.n - 1
+df2 = y.n - 1
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "two.sided"
+
+if (alternative != "two.sided") {
+  lower.critical = qf(p = (1 - alpha), df1 = df1, df2 = df2, lower.tail = FALSE)
+  upper.critical = qf(p = (1 - alpha), df1 = df1, df2 = df2, lower.tail = TRUE)
+} else {
+  lower.critical = qf(p = (1 - (alpha / 2)), df1 = df1, df2 = df2, lower.tail = FALSE)
+  upper.critical = qf(p = (1 - (alpha / 2)), df1 = df1, df2 = df2, lower.tail = TRUE)
+}
+
+p_value = pf(q = FF, df1 = df1, df2 = df2, lower.tail = TRUE)
+p_value = switch(EXPR = alternative,
+                 two.sided = 2 * min(p_value, 1 - p_value),
+                 less = p_value,
+                 greater = 1 - p_value)
+
+cat("Test Statistic:", FF, "\n")
+cat("Degrees of Freedom:", c(df1, df2), "\n")
+cat("Critical Values:", c(lower.critical, upper.critical), "\n")
+cat("P-value:", p_value, "\n")
+
+plotDistStat(dist = "F",
+             df1 = df1,
+             df2 = df2,
+             alpha_level = 0.05,
+             statistic_point = FF,
+             p_value = p_value)
+
+# method 2
+# setting initial parameter values
+x = data %>% filter(Species == "setosa") %>% select(Sepal.Width) %>% unlist()
+y = data %>% filter(Species == "virginica") %>% select(Sepal.Width) %>% unlist()
+
+# use "var.test" function from "stats" package
+var.test(x = x, y = y, alternative = "two.sided", conf.level = 0.95)
+```

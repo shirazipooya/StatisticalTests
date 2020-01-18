@@ -18,7 +18,7 @@ rm(list = ls())
 source(file = "muFunc.R")
 
 # load required packages
-wants = c("pacman", "dplyr", "psych", "ggpubr")
+wants = c("pacman", "dplyr", "psych", "ggpubr", "reshape2")
 has = wants %in% rownames(x = installed.packages())
 if(any(!has)) install.packages(wants[!has])
 pacman::p_load(char = wants)
@@ -26,7 +26,7 @@ pacman::p_load(char = wants)
 # load required data
 data = read.csv(file = "data/Data_Test_10.csv", header = TRUE)
 
-# show data:
+# show data
 psych::headTail(x = data, top = 2, bottom = 2)
 ```
 
@@ -86,7 +86,7 @@ plotDistStat(dist = "t",
              p_value = p_value)
 
 # method 2
-# use t.test function - alternative = "two.sided":
+# use "t.test" function from "stats" package
 x = data$Control
 y = data$Treatment
 t.test(x = x, y = y, paired = TRUE,

@@ -1,0 +1,98 @@
+---
+title: "Test 19: Discriminant Test for the Origin of a p-fold Sample"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "muFunc.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr", "MVTests")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "data/Data_Test_18.csv", header = TRUE)
+
+data_s = read.csv(file = "data/Data_Test_19.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data_s, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+dataPlot = data_s %>% reshape2::melt()
+
+# visualizing samples with box plots
+ggpubr::ggboxplot(data = dataPlot, x = "variable", y = "value", add = "mean", ylab = "Variable (cm)")
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values
+XY = function(X, Y) {
+  X = unlist(x = X)
+  Y = unlist(x = Y)
+  result = sum((X - mean(X)) * (Y - mean(Y)))
+  return(result)
+}
+
+data = data %>% filter(Species != "virginica")
+
+A = data %>% filter(Species == "setosa") %>% select(-Species)
+A.m = colMeans(x = A)
+A.n = nrow(x = A)
+
+B = data %>% filter(Species == "versicolor") %>% select(-Species)
+B.m = colMeans(x = B)
+B.n = nrow(x = B)
+
+n = A.n + B.n
+p = ncol(x = A)
+
+# solve the equations to find the statistics a, b, c and d (AA * x = BB)
+data_AA = c()
+
+for (i in 1:p) {
+  for (j in 1:p) {
+    data_AA = c(data_AA, (XY(A[i], A[j]) + XY(B[i], B[j])))
+  }
+}
+
+AA = array(data = data_AA, dim = c(p, p))
+
+BB = c()
+for (i in 1:p) {
+  BB = c(BB, ((n - 2) * (A.m[i] - B.m[i])))
+}
+
+coef = solve(a = AA, b = BB)
+
+# discriminant test
+DA = sum(coef * A.m)
+DB = sum(coef * B.m)
+
+S = data_s
+S.m = colMeans(x = S)
+
+DS = sum(coef * S.m)
+
+if (abs(DA - DS) < abs(DB - DS)) {
+  cat("S Series Belongs to Population A")
+} else {
+  cat("S Series Belongs to Population B")
+}
+
+```

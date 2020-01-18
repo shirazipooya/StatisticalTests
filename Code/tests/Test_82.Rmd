@@ -1,0 +1,118 @@
+---
+title: "Test 82: F-test for Testing Linearity of Regression"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "muFunc.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr", "ggExtra")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "data/Data_Test_82.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# visualize data using scatter plots
+data %>% ggpubr::ggscatter(x = "Mashhad", y = "Sabzevar", 
+                            add = "reg.line", conf.int = TRUE,
+                            xlab = "Mashhad Prec. (mm)",
+                            ylab = "Sabzevar Prec. (mm)") %>%
+  ggExtra::ggMarginal(type = "boxplot", fill = "gray90")
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# x variable
+x = data$Mashhad
+x.m = mean(x = x)
+
+# y variable
+y = data$Sabzevar
+y.m = mean(x = y)
+
+# length data
+n = nrow(x = data)
+
+# regression coefficient (b)
+b = (sum(x * y) - ((sum(x) * sum(y)) / n)) / (sum(x ^ 2) - (sum(x) ^ 2 / n))
+
+# total sum of squares (SST)
+SST = sum((y - y.m) ^ 2)
+
+# regression sum of squares (SSR)
+SSR <- sum((b * (x - x.m)) ^ 2)
+
+# residual sum of squares (SSE)
+SSE <- sum((y - y.m - (b * (x - x.m))) ^ 2)
+
+# mean squares
+SSE.m <- SSE / (n - 2)
+SSR.m <- SSR / 1
+
+# ratio of mean squares (F)
+FF = SSR.m / SSE.m
+
+# degrees of freedom
+df1 = 1
+df2 = n - 2
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "greater"
+
+if (alternative != "two.sided") {
+  lower.critical = qf(p = (1 - alpha), df1 = df1, df2 = df2, lower.tail = FALSE)
+  upper.critical = qf(p = (1 - alpha), df1 = df1, df2 = df2, lower.tail = TRUE)
+} else {
+  lower.critical = qf(p = (1 - (alpha / 2)), df1 = df1, df2 = df2, lower.tail = FALSE)
+  upper.critical = qf(p = (1 - (alpha / 2)), df1 = df1, df2 = df2, lower.tail = TRUE)
+}
+
+p_value = pf(q = FF, df1 = df1, df2 = df2, lower.tail = TRUE)
+p_value = switch(EXPR = alternative,
+                 two.sided = 2 * min(p_value, 1 - p_value),
+                 less = p_value,
+                 greater = 1 - p_value)
+
+cat("Test Statistic:", FF, "\n")
+cat("Degrees of Freedom:", c(df1, df2), "\n")
+cat("Critical Values:", c(lower.critical, upper.critical), "\n")
+cat("P-value:", p_value, "\n")
+
+plotDistStat(dist = "F",
+             df1 = df1,
+             df2 = df2,
+             to = 50,
+             alpha_level = 0.05,
+             statistic_point = FF,
+             p_value = p_value)
+
+# method 2
+mod <- lm(formula = Sabzevar ~ Mashhad, data = data)
+
+summary(mod)
+
+# assumption checking
+# 1. The error terms are normally and independently distributed with mean zero.
+shapiro.test(x = mod$residuals)
+mean(mod$residuals)
+```

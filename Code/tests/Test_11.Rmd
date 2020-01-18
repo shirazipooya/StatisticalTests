@@ -1,0 +1,110 @@
+---
+title: "Test 11: t-test of a Regression Coefficient"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "muFunc.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr", "ggExtra", "jtools")
+has = wants %in% rownames(x = installed.packages())
+if(any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "data/Data_Test_11.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# assumption checking:
+# 1. the variable y follows a normal distribution for each value of x.
+# use shapiro-wilk normality test
+shapiro.test(x = data$Mashhad)
+shapiro.test(x = data$Sabzevar)
+
+# normality plot
+ggqqplot(data = data$Mashhad, ylab = "Mashhad Prec. (mm)")
+ggqqplot(data = data$Sabzevar, ylab = "Sabzevar Prec. (mm)")
+
+visualize data using scatter plots
+data %>% ggpubr::ggscatter(x = "Mashhad", y = "Sabzevar",
+                           add = "reg.line", conf.int = TRUE,
+                           xlab = "Mashhad Prec. (mm)",
+                           ylab = "Sabzevar Prec. (mm)") %>%
+  ggExtra::ggMarginal(type = "boxplot", fill = "gray90")
+```
+
+```{r Step_4, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values
+x = data$Mashhad
+x.m = mean(x = x)
+y = data$Sabzevar
+y.m = mean(x = y)
+n = nrow(x = data)
+
+# regression coefficient
+b.numerator = sum(x * y) - ((sum(x) * sum(y)) / n)
+b.denominator = sum(x ^ 2) - ((sum(x) ^ 2)/ n)
+b = b.numerator / b.denominator
+
+# variance of x
+s.x = sum((x - x.m) ^ 2) / (n - 1)
+
+# variance of y
+s.y = sum((y - y.m) ^ 2) / (n - 1)
+
+# variance of yx
+s.yx = ((n - 1) / (n - 2)) * (s.y - (s.x * (b ^ 2)))
+
+# test statistic
+t = sqrt(((b ^ 2) * s.x * (n - 1)) / (s.yx))
+
+# degrees of freedom
+df = n - 2
+
+# compute the critical values at 0.05 significance level (two tailed)
+alpha = 0.05
+two.sided = TRUE
+Tcritical = qt(p = (1 - alpha/2), df = df)
+
+# p-value (two tailed)
+p_value = pt(q = t, df = df, lower.tail = FALSE)
+
+if (two.sided) {
+  p_value = 2 * p_value
+  if (p_value > 1) { p_value = 2 - p_value }
+}
+
+cat("Test Statistic: ", t, "\n")
+cat("Degrees of Freedom:", df, "\n")
+cat("Critical Values: ", c(-Tcritical, Tcritical), "\n")
+cat("P-value: ", p_value, "\n")
+
+plotDistStat(dist = "t",
+             from = -7,
+             to = 7,
+             alpha_level = 0.05,
+             statistic_point = t,
+             p_value = p_value)
+
+# method 2
+# use "lm" function from "stats" package
+mod = lm(formula = Sabzevar ~ Mashhad, data = data)
+jtools::summ(model = mod)
+```

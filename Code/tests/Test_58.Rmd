@@ -1,0 +1,120 @@
+---
+title: "Test 58: The Spearman Rank Correlation Test (Paired Observations)"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "muFunc.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr", "pspearman", "PerformanceAnalytics")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "data/Data_Test_58.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+# visualize data using scatter plots
+PerformanceAnalytics::chart.Correlation(R = data[, c("Abadan", "Ahvaz")],
+                                        method = "spearman")
+
+data %>% ggpubr::ggscatter(x = "Abadan", y = "Ahvaz",
+                           add = "reg.line", conf.int = TRUE,
+                           xlab = "Abadan Prec. (mm)", ylab = "Ahvaz Prec. (mm)")
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values
+x = data$Abadan
+y = data$Ahvaz
+n = length(x = x)
+
+# rank the x and y variables
+rank_x = rank(x = x)
+rank_y = rank(x = y)
+
+# the observed value of R statistics
+R = sum((rank_x - rank_y) ^ 2)
+
+if (n > 10) {
+  # spearman's ρ statistic
+  rho = 1 - ((6 * R) / (n * ((n ^ 2) - 1)))
+  
+  # test statistic
+  Z = ((6 * R) - (n * ((n ^ 2) - 1))) / (n * (n + 1) * sqrt(n - 1))
+  
+  # compute the critical values and p-value
+  alpha = 0.05
+  alternative = "two.sided"
+  
+  if (alternative != "two.sided") {
+    lower.critical = qnorm(p = (1 - alpha), lower.tail = FALSE)
+    upper.critical = qnorm(p = (1 - alpha), lower.tail = TRUE)
+  } else {
+    lower.critical = qnorm(p = (1 - (alpha / 2)), lower.tail = FALSE)
+    upper.critical = qnorm(p = (1 - (alpha / 2)), lower.tail = TRUE)
+  }
+  
+  p_value = pnorm(q = Z, lower.tail = TRUE)
+  p_value = switch(EXPR = alternative,
+                   two.sided = 2 * min(p_value, 1 - p_value),
+                   less = p_value,
+                   greater = 1 - p_value)
+  
+  cat("Observed Value of R Statistics:", R, "\n")
+  cat("Spearman's ρ Statistic:", rho, "\n")
+  cat("Test Statistic:", Z, "\n")
+  cat("Critical Values:", c(lower.critical, upper.critical), "\n")
+  cat("P-value:", p_value, "\n")
+  
+  plotDistStat(dist = "Normal",
+               to = 6,
+               alpha_level = 0.05,
+               statistic_point = Z,
+               p_value = p_value)
+} else {
+  # spearman's ρ statistic
+  rho = 1 - ((6 * S) / (n * ((n ^ 2) - 1)))
+  
+  # degrees of freedom
+  df = n - 2
+
+  # compute the critical values
+  alpha = 0.05
+  
+  lower.critical = qt(p = (1 - alpha), df = df, lower.tail = FALSE)
+  lower.critical.r = psych::t2r(t = lower.critical, df = df)
+  
+  upper.critical = qt(p = (1 - alpha), df = df, lower.tail = TRUE)
+  upper.critical.r = psych::t2r(t = upper.critical, df = df)
+  
+  cat("Observed Value of R Statistics:", R, "\n")
+  cat("Spearman's ρ Statistic (Test Statistic):", rho, "\n")
+  cat("Critical Values:", c(lower.critical.r, upper.critical.r), "\n")
+}
+
+# method 2
+# use "cor.test" function from "stats" package 
+cor.test(x = data$Abadan,
+         y = data$Ahvaz,
+         alternative = "two.sided",
+         method = "spearman")
+```

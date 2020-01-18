@@ -1,0 +1,141 @@
+---
+title: "Test 21: Dixon’s Test for Outliers"
+output:
+  word_document:
+    highlight: "default"
+    reference_docx: word_styles.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Step_1, warning=FALSE, message=FALSE}
+# remove all variable
+rm(list = ls())
+
+# load required functions
+source(file = "muFunc.R")
+
+# load required packages
+wants = c("pacman", "dplyr", "psych", "ggpubr", "MVTests")
+has = wants %in% rownames(x = installed.packages())
+if (any(!has)) install.packages(wants[!has])
+pacman::p_load(char = wants)
+
+# load required data
+data = read.csv(file = "data/Data_Test_18.csv", header = TRUE)
+
+# show data
+psych::headTail(x = data_s, top = 2, bottom = 2)
+```
+
+```{r Step_2, fig.width=4, fig.height=4, dpi=600}
+dataPlot = data_s %>% reshape2::melt()
+
+# visualizing samples with box plots
+ggpubr::ggboxplot(data = dataPlot, x = "variable", y = "value", add = "mean", ylab = "Variable (cm)")
+```
+
+```{r Step_3, fig.width=4, fig.height=4, dpi=600}
+# method 1
+# setting initial parameter values
+XY = function(X, Y) {
+  X = unlist(x = X)
+  Y = unlist(x = Y)
+  result = sum((X - mean(X)) * (Y - mean(Y)))
+  return(result)
+}
+
+data = data %>% filter(Species != "virginica")
+
+A = data %>% filter(Species == "setosa") %>% select(-Species)
+A.m = colMeans(x = A)
+A.n = nrow(x = A)
+
+B = data %>% filter(Species == "versicolor") %>% select(-Species)
+B.m = colMeans(x = B)
+B.n = nrow(x = B)
+
+n = A.n + B.n
+p = ncol(x = A)
+
+# solve the equations to find the statistics a, b, c and d (AA * x = BB)
+data_AA = c()
+
+for (i in 1:p) {
+  for (j in 1:p) {
+    data_AA = c(data_AA, (XY(A[i], A[j]) + XY(B[i], B[j])))
+  }
+}
+
+AA = array(data = data_AA, dim = c(p, p))
+
+BB = c()
+for (i in 1:p) {
+  BB = c(BB, ((n - 2) * (A.m[i] - B.m[i])))
+}
+
+coef = solve(a = AA, b = BB)
+
+# Hotelling’s T2
+T2.a = (A.n * B.n) / (A.n + B.n)
+
+T2.b = c()
+for (i in 1:p) {
+  T2.b = c(T2.b, (coef[i] * (A.m[i] - B.m[i])))
+}
+
+T2.b = sum(T2.b)
+
+T2 = T2.a * T2.b
+
+# test statistic 
+FF = ((A.n + B.n - p - 1) / (p * (A.n + B.n - 2))) * T2
+
+# degrees of freedom
+df1 = p
+df2 = A.n + B.n - p - 1
+
+# compute the critical values and p-value
+alpha = 0.05
+alternative = "two.sided"
+
+if (alternative != "two.sided") {
+  lower.critical = qf(p = (1 - alpha), df1 = df1, df2 = df2, lower.tail = FALSE)
+  upper.critical = qf(p = (1 - alpha), df1 = df1, df2 = df2, lower.tail = TRUE)
+} else {
+  lower.critical = qf(p = (1 - (alpha / 2)), df1 = df1, df2 = df2, lower.tail = FALSE)
+  upper.critical = qf(p = (1 - (alpha / 2)), df1 = df1, df2 = df2, lower.tail = TRUE)
+}
+
+p_value = pf(q = FF, df1 = df1, df2 = df2, lower.tail = TRUE)
+p_value = switch(EXPR = alternative,
+                 two.sided = 2 * min(p_value, 1 - p_value),
+                 less = p_value,
+                 greater = 1 - p_value)
+
+cat("Hotelling T Sqaure Statistic:", T2, "\n")
+cat("Test Statistic:", FF, "\n")
+cat("Degrees of Freedom:", c(df1, df2), "\n")
+cat("Critical Values:", c(lower.critical, upper.critical), "\n")
+cat("P-value:", p_value, "\n")
+
+plotDistStat(dist = "F",
+             df1 = df1,
+             df2 = df2,
+             alpha_level = 0.05,
+             statistic_point = FF,
+             p_value = p_value)
+
+# method 2
+# setting initial parameter values
+data = data %>% filter(Species != "virginica") %>% select(-Species)
+group = c(rep(x = 1, 50), rep(x = 2, 50))
+
+# use "TwoSamplesHT2" function from "MVTests" package
+result = MVTests::TwoSamplesHT2(data = data, group = group, 
+                                alpha = 0.05, Homogenity = TRUE)
+
+summary(object = result)
+```
